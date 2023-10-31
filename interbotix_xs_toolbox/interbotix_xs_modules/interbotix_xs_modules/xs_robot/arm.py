@@ -269,9 +269,7 @@ class InterbotixArmXSInterface:
         )
         self.core.pub_group.publish(joint_commands)
         if blocking:
-            time.sleep(
-                self.moving_time
-            )  # TODO: once released, use rclpy.clock().sleep_for()
+            self.core.get_clock().sleep_for(self.moving_time)
         self._update_Tsb()
 
     def set_trajectory_time(
@@ -299,10 +297,7 @@ class InterbotixArmXSInterface:
                     value=int(moving_time * 1000),
                 )
             )
-            self.core.executor.spin_once_until_future_complete(
-                future=future_moving_time,
-                timeout_sec=0.1
-            )
+            self.core.robot_spin_until_future_complete(future_moving_time)
 
         if accel_time is not None and accel_time != self.accel_time:
             self.accel_time = accel_time
@@ -314,10 +309,7 @@ class InterbotixArmXSInterface:
                     value=int(accel_time * 1000),
                 )
             )
-            self.core.executor.spin_once_until_future_complete(
-                future=future_accel_time,
-                timeout_sec=0.1
-            )
+            self.core.robot_spin_until_future_complete(future_accel_time)
 
     def _check_joint_limits(self, positions: List[float]) -> bool:
         """
@@ -471,7 +463,7 @@ class InterbotixArmXSInterface:
         single_command = JointSingleCommand(name=joint_name, cmd=position)
         self.core.pub_single.publish(single_command)
         if blocking:
-            time.sleep(self.moving_time)
+            self.core.get_clock().sleep_for(self.moving_time)
         self._update_Tsb()
         return True
 
@@ -704,7 +696,7 @@ class InterbotixArmXSInterface:
                     cmd_type='group', name=self.group_name, traj=joint_traj
                 )
             )
-            time.sleep(moving_time + wp_moving_time)
+            self.core.get_clock().sleep_for(moving_time + wp_moving_time)
             self.T_sb = T_sd
             self.joint_commands = joint_positions
             self.set_trajectory_time(moving_time, accel_time)
