@@ -56,7 +56,6 @@ from rclpy.task import Future
 from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
-
 class InterbotixRobotXSCore(Node):
     """Class that interfaces with the xs_sdk node ROS interfaces."""
 
@@ -458,4 +457,8 @@ class InterbotixRobotXSCore(Node):
         :param future: future to complete
         :timeout_sec: seconds to wait. defaults to None (no timeout)
         """
-        self.executor.spin_until_future_complete(future=future, timeout_sec=timeout_sec)
+        elapsed_time = 0.0
+        while not future.done() and rclpy.ok() and (timeout_sec is None or elapsed_time < timeout_sec):
+            self.executor.spin_once_until_future_complete(future=future, timeout_sec=.01)
+            elapsed_time += 0.01
+        

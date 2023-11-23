@@ -126,13 +126,13 @@ class InterbotixManipulatorXS:
             node_name=node_name,
             args=args
         )
+
         self.arm = InterbotixArmXSInterface(
             core=self.core,
             robot_model=robot_model,
             group_name=group_name,
-            moving_time=moving_time,
-            accel_time=accel_time,
         )
+        
         if gripper_name is not None:
             self.gripper = InterbotixGripperXSInterface(
                 core=self.core,
@@ -145,6 +145,11 @@ class InterbotixManipulatorXS:
         if start_on_init:
             self.start()
 
+        self.arm.set_trajectory_time(moving_time, accel_time)
+                
+        
+
+        
     def start(self) -> None:
         """Start a background thread that builds and spins an executor."""
         self._execution_thread = Thread(target=self.run)
@@ -171,9 +176,7 @@ class InterbotixArmXSInterface:
         self,
         core: InterbotixRobotXSCore,
         robot_model: str,
-        group_name: str,
-        moving_time: float = 2.0,
-        accel_time: float = 0.3,
+        group_name: str
     ) -> None:
         """
         Construct the InterbotixArmXSInterface object.
@@ -190,7 +193,7 @@ class InterbotixArmXSInterface:
         """
         self.core = core
         self.robot_model = robot_model
-        self.moving_time, self.accel_time = moving_time, accel_time
+        self.moving_time, self.accel_time = 0.0, 0.0
         self.group_name = group_name
 
         self.robot_des: mrd.ModernRoboticsDescription = getattr(mrd, self.robot_model)
@@ -226,8 +229,7 @@ class InterbotixArmXSInterface:
             )
         # get the initial transform between the space and body frames
         self._update_Tsb()
-        self.set_trajectory_time(self.moving_time, self.accel_time)
-
+        
         # build the info index map between joint names and their index
         self.info_index_map = dict(
             zip(self.group_info.joint_names, range(self.group_info.num_joints))
@@ -300,6 +302,7 @@ class InterbotixArmXSInterface:
                 )
             )
             self.core.robot_spin_until_future_complete(future_moving_time)
+            
 
         if accel_time is not None and accel_time != self.accel_time:
             self.accel_time = accel_time
@@ -312,6 +315,7 @@ class InterbotixArmXSInterface:
                 )
             )
             self.core.robot_spin_until_future_complete(future_accel_time)
+
 
     def _check_joint_limits(self, positions: List[float]) -> bool:
         """
